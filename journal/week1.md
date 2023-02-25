@@ -3,7 +3,9 @@
 ## Notes for future use
 
 clone repo
+
 remove gitpod URL
+
 install npm
 
 https://dev.solita.fi/2021/12/21/docker-on-wsl2-without-docker-desktop.html
