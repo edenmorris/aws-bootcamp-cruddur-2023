@@ -119,6 +119,7 @@ def rollbar_test():
     return "Hello World!"
 
 @app.route("/api/messages/@<string:handle>", methods=['GET'])
+@xray_recorder.capture('activities_users')
 def data_messages(handle):
   user_sender_handle = 'andrewbrown'
   user_receiver_handle = request.args.get('user_reciever_handle')
