@@ -3,6 +3,8 @@ from flask import request
 from flask_cors import CORS, cross_origin
 import os
 
+from lib.cognito_jwt_token import CognitoJwtToken, TokenVerifyError
+
 # Cloudwatch logs
 import watchtower
 import logging
@@ -61,6 +63,16 @@ xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
 
 app = Flask(__name__)
 
+cognito_jwt_token = CognitoJwtToken(
+  user_pool_id = os.getenv("AWS_COGNITO_USER_POOL_ID"), 
+  user_pool_client_id = os.getenv("AWS_COGNITO_USER_POOL_CLIENT_ID"), 
+  region = os.getenv("AWS_DEFAULT_REGION")
+  )
+# # Cognito
+# app.config['AWS_COGNITO_USER_POOL_ID'] = os.getenv('AWS_COGNITO_USER_POOL_ID')
+# app.config['AWS_COGNITO_USER_POOL_CLIENT_ID'] = os.getenv('AWS_COGNITO_USER_POOL_CLIENT_ID')
+# aws_auth = AWSCognitoAuthentication(app)
+
 # XRAY ------
 XRayMiddleware(app, xray_recorder)
 
@@ -93,8 +105,8 @@ origins = [frontend, backend]
 cors = CORS(
   app, 
   resources={r"/api/*": {"origins": origins}},
-  expose_headers="location,link",
-  allow_headers="content-type,if-modified-since",
+  headers=['Content-Type', 'Authorization'], 
+  expose_headers='Authorization',
   methods="OPTIONS,GET,HEAD,POST"
 )
 
@@ -147,7 +159,18 @@ def data_create_message():
 
 @app.route("/api/activities/home", methods=['GET'])
 def data_home():
-  data = HomeActivities.run(logger=LOGGER)
+  access_token = cognito_jwt_token.extract_access_token(request.headers)
+  try:
+    app.logger.debug(access_token)
+    cognito_jwt_token.verify(access_token)
+  except TokenVerifyError as e:
+    _ = request.data
+    app.logger.debug(e)
+
+  app.logger.debug("claims")
+  app.logger.debug(cognito_jwt_token.claims['username'])
+
+  data = HomeActivities.run(logger=LOGGER, cognito_user_id=cognito_jwt_token.claims['username'])
   return data, 200
 
 @app.route("/api/activities/notifications", methods=['GET'])
