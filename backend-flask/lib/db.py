@@ -1,9 +1,20 @@
 from psycopg_pool import ConnectionPool
 import os
+import re
+import sys
+from flask import current_app as app
 
 class Db:
   def __init__(self):
     self.init_pool()
+
+  def template(self, name):
+    template_path = os.path.join(app.root_path,'db','sql', name + '.sql')
+
+    with open(template_path,'r') as f:
+      template_content = f.read()
+
+    return template_content
 
   def init_pool(self):
     connection_url = os.getenv("CONNECTION_URL")
@@ -25,24 +36,21 @@ class Db:
     """
     return sql
 
-  def query_commit(self, user_uuid, message, expires_at):
-    sql = f"""
-    INSERT INTO (
-      user_uuid,
-      message,
-      expires_at
-    )
-    VALUES(
-      "{user_uuid}",
-      "{message}",
-      "{expires_at}"
-    )
-    """
+  def query_commit(self, sql, params):
+    print("SQL COMMIT WITH RETURN")
+    print(sql)
+    pattern = r"\bRETURNING\b"
+    match = re.search(pattern, sql)
+
     try:
-      conn = pool.connection()
-      cur = conn.cursor()
-      cur.execute(sql)
-      conn.commit()
+      with self.pool.connection() as conn:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        if match:
+          returning_id = cur.fetchone()[0]
+        conn.commit()
+        if match:
+          return returning_id
     except Exception as error:
       print(error)
       #conn.rollback()
