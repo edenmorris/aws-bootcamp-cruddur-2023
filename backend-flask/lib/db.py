@@ -9,7 +9,7 @@ class Db:
     self.init_pool()
 
   def template(self, name):
-    template_path = os.path.join(app.root_path,'db','sql', name + '.sql')
+    template_path = os.path.join(app.root_path,'db','sql', name)
 
     with open(template_path,'r') as f:
       template_content = f.read()
