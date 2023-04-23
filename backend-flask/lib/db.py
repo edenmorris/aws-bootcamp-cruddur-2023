@@ -36,7 +36,7 @@ class Db:
     """
     return sql
 
-  def query_commit(self, sql, params):
+  def query_commit(self, sql, params={}):
     print("SQL COMMIT WITH RETURN")
     print(sql)
     pattern = r"\bRETURNING\b"
@@ -55,23 +55,19 @@ class Db:
       print(error)
       #conn.rollback()
 
-  def query_array_json(self, sql):
+  def query_array_json(self, sql, params={}):
     wrapped_sql = self.query_wrap_array(sql)
     with self.pool.connection() as conn:
       with conn.cursor() as cur:
-        cur.execute(wrapped_sql)
-        # this will return a tuple
-        # the first field being the data
+        cur.execute(wrapped_sql, params)
         json = cur.fetchone()
     return json[0]
 
-  def query_object_json(self):
+  def query_object_json(self, sql, params={}):
     wrapped_sql = self.query_wrap_object(sql)
     with self.pool.connection() as conn:
       with conn.cursor() as cur:
-        cur.execute(wrapped_sql)
-        # this will return a tuple
-        # the first field being the data
+        cur.execute(wrapped_sql, params)
         json = cur.fetchone()
     return json[0]
 
